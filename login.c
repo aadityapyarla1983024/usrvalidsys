@@ -3,6 +3,7 @@
 #include <time.h>
 #define MAX_INPUT 100
 
+
 int displayUsers(FILE *fptr);
 int registerUser(FILE *fptr);
 int loginUser(FILE *fptr);
@@ -11,6 +12,7 @@ int adminMode(FILE *fptr);
 int adminCheck(FILE *fptr);
 int endProgram(FILE *fptr);
 int checkMode(char mode, FILE *fptr);
+unsigned long hasher(char* str);
 
 
 
@@ -19,7 +21,7 @@ typedef struct database
     char rollNo[MAX_INPUT];
     char email[MAX_INPUT];
     char username[MAX_INPUT];
-    char password[MAX_INPUT];
+    unsigned long password;
     char dateOfReg[MAX_INPUT];
 } db;
 
@@ -43,6 +45,8 @@ int main()
 }
 
 
+
+
 int displayUsers(FILE *fptr)
 {
 
@@ -50,7 +54,7 @@ int displayUsers(FILE *fptr)
     int index = 0;
     while (!feof(fptr))
     {
-        fscanf(fptr, "%s %s %s %s %s ",users.rollNo, users.email, users.username, users.password, users.dateOfReg);
+        fscanf(fptr, "%s %s %s %*lu %s ",users.rollNo, users.email, users.username, users.dateOfReg);
         printf("\n\tRecord\t%d\n",++index);
         printf("Roll No:\t%s\n", users.rollNo);
         printf("Username:\t%s\n", users.username);
@@ -146,17 +150,21 @@ int loginUser(FILE *fptr)
 {
     char username[MAX_INPUT];
     char password[MAX_INPUT];
+    char *passptr = password;
+    unsigned long hashedPass;
     db users;
     printf("Enter your username: ");
     scanf("%s", username);
     while (!feof(fptr))
     {
-        fscanf(fptr, "%*s %*s %s %s %*s ", users.username, users.password);
+        fscanf(fptr, "%*s %*s %s %lu %*s ", users.username, &users.password);
         if (strcmp(users.username, username) == 0)
         {
             printf("Enter your password: ");
             scanf("%s", password);
-            if (strcmp(users.password, password) == 0)
+            hashedPass = hasher(passptr);
+
+            if (hashedPass == users.password)
             {
                 printf("Welcome %s", username);
                 return endProgram(fptr);   
@@ -173,6 +181,16 @@ int loginUser(FILE *fptr)
     
 }
 
+unsigned long hasher(char* str) {
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+    return hash;
+}
+
+
 
 int registerUser(FILE *fptr)
 {
@@ -180,6 +198,8 @@ int registerUser(FILE *fptr)
     char email[MAX_INPUT];
     char username[MAX_INPUT];
     char password[MAX_INPUT];
+    char *passptr = password;
+    unsigned long hashedPass;
     char dateOfReg[MAX_INPUT];
     int dateBuff[3];
     printf("Enter your rollNo: ");
@@ -192,7 +212,8 @@ int registerUser(FILE *fptr)
     scanf("%s", password);
     getDate(dateBuff);
     sprintf(dateOfReg, "%d/%d/%d", dateBuff[0], dateBuff[1], dateBuff[2]);
-    fprintf(fptr, "%s %s %s %s %s\n", rollNo, email, username, password, dateOfReg);
-    
+    hashedPass = hasher(passptr);
+    fprintf(fptr, "%s %s %s %lu %s\n", rollNo, email, username, hashedPass, dateOfReg);
+
     return endProgram(fptr);
 }
